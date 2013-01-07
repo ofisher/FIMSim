@@ -47,8 +47,6 @@ int netlink_route_info_encode(char *in_buf, union ip_add gw, union ip_add dst,
 
   int mask = atoi(str_mask);
   size_t buf_offset;
-  //netlink_nh_info_t *nhi;
-
   struct {
     struct nlmsghdr n;
     struct rtmsg r;
@@ -72,7 +70,6 @@ int netlink_route_info_encode(char *in_buf, union ip_add gw, union ip_add dst,
   req->r.rtm_family = AF_INET;
   req->r.rtm_table = RT_TABLE_MAIN;
   req->r.rtm_dst_len = mask;
-  //printf("mask %i\n", req->r.rtm_dst_len);
   req->r.rtm_protocol = RTPROT_ZEBRA;
   //req->r.rtm_scope = RT_SCOPE_UNIVERSE;
 
@@ -80,7 +77,6 @@ int netlink_route_info_encode(char *in_buf, union ip_add gw, union ip_add dst,
 
   addattr_l(&req->n, in_buf_len, RTA_GATEWAY, gw.ip_char, 4);
 
-  //printf("interface id = %i\n", interface_id);
 
   addattr32(&req->n, in_buf_len, RTA_OIF, interface_id);
   assert(req->n.nlmsg_len < in_buf_len);
@@ -94,13 +90,8 @@ void send_netlink_packet(int sockfd, char command[]) {
 
   gateway = strtok(NULL, " \n");
   interface = strtok(NULL, " \n");
-  //printf("network_with_mask is %s \n", network);
   network = strtok(network, "/");
   mask = strtok(NULL, "/");
-  //printf("mask is %s \n", mask);
-  //printf("network is %s \n", network);
-  //printf("gateway is %s \n", gateway);
-  // printf("interface is %s\n",interface);
 
   union ip_add gw;
   gw.ip_addr = inet_addr(gateway);
