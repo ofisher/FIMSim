@@ -18,7 +18,7 @@
 #include <net/if.h>
 
 #include "fpm.h"
-#include "lsp.h"
+#include "mpls.h"
 
 #define FPM_DEFAULT_PORT 2620
 #define BUFFER_SIZE 2000
@@ -141,17 +141,17 @@ void sendLSPUpdate(int sockfd, char * command) {
   hdr = (fpm_msg_hdr_t *) buf;
 
   hdr->version = FPM_PROTO_VERSION;
-  hdr->msg_type = FPM_MSG_TYPE_LSP;
+  hdr->msg_type = FPM_MSG_TYPE_NHLFE;
   data = fpm_msg_data(hdr);
-  lsp_msg_t * lsp_msg = (void *) data;
+  nhlfe_msg_t * nhlfe_msg = (void *) data;
 
-  lsp_msg->ip_version = IPv4;
+  nhlfe_msg->ip_version = IPv4;
 
   if (strcmp(table_operation, "add") == 0) {
-    lsp_msg->table_operation = ADD_LSP;
+    nhlfe_msg->table_operation = ADD_LSP;
 
   } else if (strcmp(table_operation, "remove") == 0) {
-    lsp_msg->table_operation = REMOVE_LSP;
+    nhlfe_msg->table_operation = REMOVE_LSP;
   } else {
     printf("Invalid table operation, options are add or remove\n");
     printf("given %s\n", table_operation);
@@ -160,11 +160,11 @@ void sendLSPUpdate(int sockfd, char * command) {
   }
 
   if (strcmp(label_operation, "push") == 0) {
-    lsp_msg->lsp_operation = PUSH;
+    nhlfe_msg->nhlfe_operation = PUSH;
   } else if (strcmp(label_operation, "pop") == 0) {
-    lsp_msg->lsp_operation = POP;
+    nhlfe_msg->nhlfe_operation = POP;
   } else if (strcmp(label_operation, "swap") == 0) {
-    lsp_msg->lsp_operation = SWAP;
+    nhlfe_msg->nhlfe_operation = SWAP;
   } else {
     printf("Invalid label operation, options are push, pop and swap\n");
     printf("given %s\n", label_operation);
@@ -172,14 +172,14 @@ void sendLSPUpdate(int sockfd, char * command) {
     return;
   }
 
-  lsp_msg->in_label = htonl(atoi(in_label));
-  lsp_msg->out_label = htonl(atoi(out_label));
+  nhlfe_msg->in_label = htonl(atoi(in_label));
+  nhlfe_msg->out_label = htonl(atoi(out_label));
 
-  lsp_msg->next_hop_ip.ipv4 = inet_addr(next_hop_ip);
+  nhlfe_msg->next_hop_ip.ipv4 = inet_addr(next_hop_ip);
 
-  int msg_len = fpm_data_len_to_msg_len(sizeof(lsp_msg_t));
+  int msg_len = fpm_data_len_to_msg_len(sizeof(nhlfe_msg_t));
 
-  printf("mesg_len = %i\n", msg_len);
+  printf("msg_len = %i\n", msg_len);
 
   hdr->msg_len = htons(msg_len);
 
@@ -215,9 +215,9 @@ int main(int argc, char *argv[]) {
   }
   char input_buf[100];
   printf("type help for help\n");
-  while (1) {
+  while (fgets(input_buf, sizeof(input_buf), stdin) != 0){
     printf(">>");
-    gets(input_buf);
+
 
     char *command_type, *command;
     command = input_buf;
@@ -232,24 +232,25 @@ int main(int argc, char *argv[]) {
 
     } else if (strcmp(command_type, "help") == 0) {
       printf("Type \"help-r\" for help on adding a route");
-      printf("Type \"help-l\" for help on adding a lsp update");
+      printf("Type \"help-n\" for help on adding a NHLFE (MPLS label match)");
     } else if (strcmp(command_type, "help-r") == 0) {
       printf("To send route update:\n");
       printf("r network-ip/mask gateway-ip interface\n");
       printf("eg: r 10.0.0.0/8 172.31.1.2 eth1\n");
       printf(
-          "That would be network 10.0.0.0/8 can be found via gateway 172.31.1.2 out interface eth0\n");
-    } else if (strcmp(command_type, "help-l") == 0) {
-      printf("To send lsp update:\n");
+          "That would be network 10.0.0.0/8 can be found via gateway 172.31.1.2 out interface eth1\n");
+    } else if (strcmp(command_type, "help-n") == 0) {
+      printf("To send NHLFE:\n");
       printf(
-          "l table_operation lable_operation next_hop_ip in_label out_label\n");
-      printf("eg: l add swap 10.0.0.1 123 456\n");
-      printf(
-          "That would be add a swap operation with next hop 10.0.0.1\nchanging label 123 to label 456\n");
-    } else if (strcmp(command_type, "l") == 0) {
+          "n table_operation lable_operation next_hop_ip in_label out_label\n");
+      printf("eg: n add swap 10.0.0.1 123 456\n");
+      printf("That would be add a swap operation with next hop 10.0.0.1\nchanging label 123 to label 456\n");
+    } else if (strcmp(command_type, "n") == 0) {
       sendLSPUpdate(sockfd, command);
     } else {
       printf("type help for help\n");
     }
   }
+
+  return EXIT_SUCCESS;
 }

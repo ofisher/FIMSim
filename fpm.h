@@ -49,7 +49,7 @@
  * NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
-
+#include "assert.h"
 #ifndef _FPM_H
 #define _FPM_H
 
@@ -135,11 +135,22 @@ typedef enum fpm_msg_type_e_ {
   FPM_MSG_TYPE_NETLINK = 1,
 
   /*
-   * Indicates that the payload is label switched path update message defined
-   * in lsp.h (lsp_msg_t)
+   * Indicates that the payload is a next hop label forwarding entry (NHLFE)
+   * in lsp.h (nhlfe_msg_t)
+   *
    */
 
-  FPM_MSG_TYPE_LSP = 2,
+  FPM_MSG_TYPE_NHLFE = 2,
+
+  /*
+   * Indicates that the payload is a FTN (Forwarding Equivalent Class to NHLFE)
+   * defined in lsp.h ftn_msg_t
+   *
+   * i.e maps IP to MPLS label
+   *
+   */
+
+  FPM_MSG_TYPE_FTN = 3,
 } fpm_msg_type_e;
 
 /*
