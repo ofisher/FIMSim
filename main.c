@@ -124,7 +124,7 @@ void send_netlink_packet(int sockfd, char command[]) {
   write(sockfd, buf, msg_len);
 }
 
-void sendLSPUpdate(int sockfd, char * command) {
+void sendNHLFEUpdate(int sockfd, char * command) {
   unsigned char buf[BUFFER_SIZE];
 
   char* data;
@@ -186,6 +186,59 @@ void sendLSPUpdate(int sockfd, char * command) {
   write(sockfd, buf, msg_len);
 }
 
+
+void sendFTN(int sockfd, char * command) {
+  unsigned char buf[BUFFER_SIZE];
+  char* data;
+  char* table_operation, *match_ip, *match_mask, *out_label, *next_hop_ip;
+
+  table_operation = strtok(command, " \n");
+  match_ip = strtok(NULL, " \n");
+
+  out_label = strtok(NULL, " \n");
+  next_hop_ip = strtok(NULL, " \n");
+
+  match_mask = strtok(NULL, " \n");
+
+  match_ip = strtok(match_ip, "/");
+  match_mask = strtok(NULL, "/");
+
+  fpm_msg_hdr_t *hdr;
+
+  hdr = (fpm_msg_hdr_t *) buf;
+
+  hdr->version = FPM_PROTO_VERSION;
+  hdr->msg_type = FPM_MSG_TYPE_FTN;
+  data = fpm_msg_data(hdr);
+
+  ftn_msg_t * ftn_msg = (void *) data;
+
+  ftn_msg->out_label = htonl(atoi(out_label));
+  ftn_msg->ip_version = IPv4;
+
+  ftn_msg->next_hop_ip.ipv4 = inet_addr(next_hop_ip);
+  ftn_msg->match_network_ip.ipv4 = inet_addr(match_ip);
+  ftn_msg->mask = atoi(match_mask);
+
+  if (strcmp(table_operation, "add") == 0) {
+    ftn_msg->table_operation = ADD_LSP;
+  } else if (strcmp(table_operation, "remove") == 0) {
+    ftn_msg->table_operation = REMOVE_LSP;
+  } else {
+    printf("Invalid table operation, options are add or remove\n");
+    printf("given %s\n", table_operation);
+    printf("aborting\n");
+    return;
+  }
+  int msg_len = fpm_data_len_to_msg_len(sizeof(ftn_msg_t));
+
+  printf("msg_len = %i\n", msg_len);
+
+  hdr->msg_len = htons(msg_len);
+
+  write(sockfd, buf, msg_len);
+}
+
 int main(int argc, char *argv[]) {
 
   if (argc < 2 || argc > 2) {
@@ -231,8 +284,9 @@ int main(int argc, char *argv[]) {
       return EXIT_SUCCESS;
 
     } else if (strcmp(command_type, "help") == 0) {
-      printf("Type \"help-r\" for help on adding a route");
-      printf("Type \"help-n\" for help on adding a NHLFE (MPLS label match)");
+      printf("Type \"help-r\" for help on adding a route\n");
+      printf("Type \"help-n\" for help on adding a NHLFE (MPLS label match)\n");
+      printf("Type \"help-f\" for help on adding a FTN\n");
     } else if (strcmp(command_type, "help-r") == 0) {
       printf("To send route update:\n");
       printf("r network-ip/mask gateway-ip interface\n");
@@ -245,8 +299,15 @@ int main(int argc, char *argv[]) {
           "n table_operation lable_operation next_hop_ip in_label out_label\n");
       printf("eg: n add swap 10.0.0.1 123 456\n");
       printf("That would be add a swap operation with next hop 10.0.0.1\nchanging label 123 to label 456\n");
+    } else if (strcmp(command_type, "help-f") == 0) {
+      printf("to send FTN\n");
+      printf("f table_operation match_ip/mask out_label next_hop_ip\n");
+      printf("eg: f add 10.1.0.0/16 123 172.31.1.2\n");
+      printf("that would be label all packets going to 10.1.0.0/16 with 123 and send it to 172.31.1.2\n");
+    } else if (strcmp(command_type, "f") == 0) {
+      sendFTN(sockfd, command);
     } else if (strcmp(command_type, "n") == 0) {
-      sendLSPUpdate(sockfd, command);
+      sendNHLFEUpdate(sockfd, command);
     } else {
       printf("type help for help\n");
     }

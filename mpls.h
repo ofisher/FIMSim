@@ -98,7 +98,7 @@ typedef struct ftn_msg_t_
 
   uint8_t table_operation;
 
-  ip4_or_6_address_t match_network;
+  ip4_or_6_address_t match_network_ip;
 
   /*
    * In network byte order
